@@ -2465,12 +2465,44 @@
       if (pw.length < 6) { err.textContent = 'Senha mínimo 6 caracteres.'; err.classList.add('show'); return; }
       if (pw !== pw2) { err.textContent = 'As senhas não coincidem.'; err.classList.add('show'); return; }
       showLoader('Criando conta...');
-      const { data: authData, error: authErr } = await sb.auth.signUp({ email, password: pw, options: { data: { name } } });
-      if (authErr) { hideLoader(); err.textContent = authErr.message; err.classList.add('show'); return; }
-      const { data: cli } = await sb.from('clientes').insert({ nome: name, tel: phone, cidade: '', obs: '', hist: [] }).select().single();
-      await sb.from('profiles').update({ client_id: cli.id, name, role: 'client' }).eq('id', authData.user.id);
-      toast('Conta criada! Bem-vindo(a)!', 'ok');
-      await startSession(authData.user);
+      try {
+        const { data: authData, error: authErr } = await sb.auth.signUp({ email, password: pw, options: { data: { name } } });
+        if (authErr) { hideLoader(); err.textContent = authErr.message; err.classList.add('show'); return; }
+
+        // Supabase returns user=null when email confirmation is required
+        if (!authData.user) {
+          hideLoader();
+          err.textContent = '';
+          err.classList.remove('show');
+          // Show success message asking to confirm email
+          const info = document.getElementById('reg-err');
+          info.textContent = '✅ Conta criada! Verifique seu e-mail para confirmar o cadastro antes de entrar.';
+          info.style.color = 'var(--green)';
+          info.style.borderColor = 'var(--green)';
+          info.classList.add('show');
+          return;
+        }
+
+        // Insert client record
+        const { data: cli, error: cliErr } = await sb.from('clientes').insert({ nome: name, tel: phone, cidade: '', obs: '', hist: [] }).select().single();
+        if (cliErr || !cli) {
+          hideLoader();
+          err.style.color = '';
+          err.style.borderColor = '';
+          err.textContent = 'Erro ao criar perfil de cliente. Tente novamente.';
+          err.classList.add('show');
+          return;
+        }
+
+        // Link profile to client
+        await sb.from('profiles').update({ client_id: cli.id, name, role: 'client' }).eq('id', authData.user.id);
+        toast('Conta criada! Bem-vindo(a)!', 'ok');
+        await startSession(authData.user);
+      } catch (e) {
+        hideLoader();
+        err.textContent = 'Erro inesperado. Tente novamente.';
+        err.classList.add('show');
+      }
     }
 
     async function startSession(authUser) {
