@@ -2645,6 +2645,18 @@
         role: profile?.role || 'client', name: profile?.name || authUser.email,
         clientId: profile?.client_id || null
       };
+
+      // Auto-repair: if client has no clientId, try to create the record now
+      if (currentUser.role === 'client' && !currentUser.clientId) {
+        const { data: cli } = await sb.from('clientes').insert({
+          nome: currentUser.name, tel: '', cidade: '', obs: '', hist: []
+        }).select().single();
+        if (cli) {
+          currentUser.clientId = cli.id;
+          await sb.from('profiles').update({ client_id: cli.id }).eq('id', authUser.id);
+        }
+      }
+
       await loadAllData();
       if (currentUser.role === 'admin') await initEstoqueRemote();
       hideLoader();
@@ -2659,7 +2671,8 @@
         document.getElementById('app-screen').classList.remove('visible');
         document.getElementById('cs-username').textContent = currentUser.name;
         const c = S.clientes.find(x => x.id === currentUser.clientId);
-        if (c) document.getElementById('cw-name').textContent = `Olá, ${c.nome.split(' ')[0]}! 👋`;
+        const firstName = (c?.nome || currentUser.name || '').split(' ')[0];
+        document.getElementById('cw-name').textContent = `Olá, ${firstName}! 👋`;
         cSwitch('meus');
       }
     }
