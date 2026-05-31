@@ -1909,6 +1909,125 @@
       align-items: center;
       animation: fadeUp .2s ease
     }
+
+    /* === MOBILE HAMBURGER BUTTON === */
+    .mob-menu-btn {
+      display: none;
+      background: none;
+      border: 1px solid var(--border2);
+      border-radius: var(--r);
+      color: var(--text2);
+      width: 36px;
+      height: 36px;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: var(--transition);
+      flex-shrink: 0
+    }
+    .mob-menu-btn:hover { background: rgba(58,122,191,.1); color: var(--blue2) }
+
+    /* Sidebar overlay for mobile */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(5,12,20,.7);
+      backdrop-filter: blur(4px);
+      z-index: 99;
+    }
+    .sidebar-overlay.open { display: block }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 768px) {
+
+      html { font-size: 13px }
+
+      /* Sidebar: hidden by default on mobile, slides in */
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform .28s cubic-bezier(.4,0,.2,1);
+        z-index: 110
+      }
+      .sidebar.open { transform: translateX(0) }
+
+      /* Main area: full width on mobile */
+      .main-area { margin-left: 0 }
+
+      /* Show hamburger button */
+      .mob-menu-btn { display: inline-flex }
+
+      /* Topbar padding */
+      .topbar { padding: 0 14px; gap: 10px }
+      .topbar-left { gap: 8px }
+      .page-title { font-size: 14px }
+
+      /* Content padding */
+      .content { padding: 14px 12px }
+
+      /* Stat grid: 2 columns on mobile */
+      .stat-grid { grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 14px }
+      .stat-val { font-size: 26px }
+      .stat-card { padding: 12px 14px }
+
+      /* Dash grid: single column */
+      .dash-grid { grid-template-columns: 1fr !important; gap: 12px }
+
+      /* Auth screen */
+      #auth-screen { padding: .75rem; align-items: flex-start; padding-top: 2rem }
+      .auth-wrap { max-width: 100% }
+
+      /* Form rows: single column on small screens */
+      .form-2, .form-3, .form-4 { grid-template-columns: 1fr }
+
+      /* Tables: horizontal scroll */
+      .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch }
+      table { min-width: 560px }
+
+      /* Modals: full width */
+      .modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92vh;
+        border-radius: var(--r2) var(--r2) 0 0;
+        margin-top: auto
+      }
+      .overlay { align-items: flex-end; padding: 0 }
+
+      /* Section header: wrap */
+      .section-header { flex-wrap: wrap; gap: 8px }
+      .section-title { font-size: 16px !important }
+
+      /* Cards */
+      .card { padding: 14px }
+
+      /* Stock table */
+      .stock-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch }
+
+      /* Toast */
+      #toast-container { bottom: .75rem; right: .75rem; left: .75rem }
+      .toast { max-width: 100%; min-width: unset }
+
+      /* Client screen */
+      .client-topbar { padding: 0 14px }
+      .client-content { padding: 14px 12px }
+
+      /* Bigger touch targets for buttons */
+      .btn { padding: 8px 14px; min-height: 36px }
+      .btn-sm { padding: 6px 10px; min-height: 32px }
+      input, select, textarea { padding: 10px 12px; font-size: 14px }
+
+      /* Hide decorative topbar line on mobile */
+      .topbar::after { display: none }
+    }
+
+    @media (max-width: 400px) {
+      .stat-grid { grid-template-columns: 1fr 1fr }
+      .stat-val { font-size: 22px }
+      .auth-tabs { flex-direction: row }
+      .auth-tab-btn { font-size: 11px; padding: .6rem .5rem }
+    }
   </style>
 </head>
 
@@ -1919,6 +2038,9 @@
     <div class="loader-spinner"></div>
     <div id="loading-text">Carregando...</div>
   </div>
+
+  <!-- SIDEBAR OVERLAY (mobile) -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
   <!-- LOGIN -->
   <div id="auth-screen">
@@ -2003,6 +2125,7 @@
     <div class="main-area">
       <header class="topbar">
         <div class="topbar-left">
+          <button class="mob-menu-btn" id="mob-menu-btn" onclick="toggleSidebar()" title="Menu"><i class="ti ti-menu-2"></i></button>
           <div class="page-icon"><i class="ti ti-layout-dashboard" id="topbar-icon"></i></div>
           <span class="page-title" id="topbar-title">Painel Geral</span>
         </div>
@@ -2580,6 +2703,18 @@
       else if (p === 'pedidos') renderPedidos();
       else if (p === 'producao') renderProd();
       else if (p === 'clientes') renderClientes();
+      closeSidebar(); // auto-close sidebar on mobile after navigation
+    }
+
+    function toggleSidebar() {
+      const sb = document.querySelector('.sidebar');
+      const ov = document.getElementById('sidebar-overlay');
+      sb.classList.toggle('open');
+      ov.classList.toggle('open');
+    }
+    function closeSidebar() {
+      document.querySelector('.sidebar').classList.remove('open');
+      document.getElementById('sidebar-overlay').classList.remove('open');
     }
 
     // ==========================================================
