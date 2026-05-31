@@ -2618,18 +2618,17 @@
           return;
         }
 
-        // Insert client record
+        // Insert client record (best-effort: RLS may block this on first signup)
         const { data: cli, error: cliErr } = await sb.from('clientes').insert({ nome: name, tel: phone, cidade: '', obs: '', hist: [] }).select().single();
-        if (cliErr || !cli) {
-          hideLoader();
-          err.textContent = 'Erro ao criar perfil de cliente. Tente novamente.';
-          err.classList.add('show');
-          return;
+        if (!cliErr && cli) {
+          // Link profile to client
+          await sb.from('profiles').update({ client_id: cli.id, name, role: 'client' }).eq('id', authData.user.id);
+        } else {
+          // Insert failed (e.g. RLS) — still proceed, just set name/role
+          console.warn('Perfil de cliente nao criado automaticamente:', cliErr?.message);
+          await sb.from('profiles').update({ name, role: 'client' }).eq('id', authData.user.id);
         }
-
-        // Link profile to client
-        await sb.from('profiles').update({ client_id: cli.id, name, role: 'client' }).eq('id', authData.user.id);
-        toast('Conta criada! Bem-vindo(a)!', 'ok');
+        toast('Conta criada! Bem-vindo(a)! 🕯️', 'ok');
         await startSession(authData.user);
       } catch (e) {
         hideLoader();
