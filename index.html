@@ -2452,6 +2452,21 @@
       await startSession(data.user);
     }
 
+    function traduzirErroAuth(msg) {
+      if (!msg) return 'Erro desconhecido. Tente novamente.';
+      const m = msg.toLowerCase();
+      if (m.includes('rate limit') || m.includes('email rate limit')) return 'Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.';
+      if (m.includes('user already registered') || m.includes('already been registered')) return 'Este e-mail já está cadastrado. Tente entrar ou use outro e-mail.';
+      if (m.includes('invalid email')) return 'E-mail inválido. Verifique e tente novamente.';
+      if (m.includes('password') && m.includes('short')) return 'Senha muito curta. Use no mínimo 6 caracteres.';
+      if (m.includes('weak password')) return 'Senha muito fraca. Use letras, números ou símbolos.';
+      if (m.includes('network') || m.includes('fetch')) return 'Erro de conexão. Verifique sua internet.';
+      if (m.includes('signup disabled') || m.includes('signups not allowed')) return 'Cadastros desativados no momento. Entre em contato com o administrador.';
+      if (m.includes('invalid login credentials')) return 'E-mail ou senha incorretos.';
+      if (m.includes('email not confirmed')) return 'Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.';
+      return 'Erro ao criar conta. Tente novamente em instantes.';
+    }
+
     async function doRegister() {
       const name = document.getElementById('r-name').value.trim();
       const phone = document.getElementById('r-phone').value.trim();
@@ -2459,6 +2474,7 @@
       const pw = document.getElementById('r-pass').value;
       const pw2 = document.getElementById('r-pass2').value;
       const err = document.getElementById('reg-err');
+      err.style.color = ''; err.style.borderColor = '';
       err.classList.remove('show');
       if (!name) { err.textContent = 'Informe seu nome.'; err.classList.add('show'); return; }
       if (!email) { err.textContent = 'Informe seu e-mail.'; err.classList.add('show'); return; }
@@ -2467,19 +2483,15 @@
       showLoader('Criando conta...');
       try {
         const { data: authData, error: authErr } = await sb.auth.signUp({ email, password: pw, options: { data: { name } } });
-        if (authErr) { hideLoader(); err.textContent = authErr.message; err.classList.add('show'); return; }
+        if (authErr) { hideLoader(); err.textContent = traduzirErroAuth(authErr.message); err.classList.add('show'); return; }
 
         // Supabase returns user=null when email confirmation is required
         if (!authData.user) {
           hideLoader();
-          err.textContent = '';
-          err.classList.remove('show');
-          // Show success message asking to confirm email
-          const info = document.getElementById('reg-err');
-          info.textContent = '✅ Conta criada! Verifique seu e-mail para confirmar o cadastro antes de entrar.';
-          info.style.color = 'var(--green)';
-          info.style.borderColor = 'var(--green)';
-          info.classList.add('show');
+          err.textContent = '✅ Conta criada! Verifique seu e-mail para confirmar o cadastro antes de entrar.';
+          err.style.color = 'var(--green)';
+          err.style.borderColor = 'var(--green)';
+          err.classList.add('show');
           return;
         }
 
@@ -2487,8 +2499,6 @@
         const { data: cli, error: cliErr } = await sb.from('clientes').insert({ nome: name, tel: phone, cidade: '', obs: '', hist: [] }).select().single();
         if (cliErr || !cli) {
           hideLoader();
-          err.style.color = '';
-          err.style.borderColor = '';
           err.textContent = 'Erro ao criar perfil de cliente. Tente novamente.';
           err.classList.add('show');
           return;
